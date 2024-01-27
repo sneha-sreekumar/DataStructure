@@ -1,0 +1,161 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct Node {
+    int vertex;
+    struct Node* next;
+};
+
+struct AdjList {
+    struct Node* head;
+};
+
+struct Graph {
+    int vertices;
+    struct AdjList* array;
+};
+
+struct Node* newNode(int vertex) {
+    struct Node* node = (struct Node*)malloc(sizeof(struct Node));
+    node->vertex = vertex;
+    node->next = NULL;
+    return node;
+}
+
+struct Graph* createGraph(int vertices) {
+    struct Graph* graph = (struct Graph*)malloc(sizeof(struct Graph));
+    graph->vertices = vertices;
+    graph->array = (struct AdjList*)malloc(vertices * sizeof(struct AdjList));
+    for (int i = 0; i < vertices; ++i)
+        graph->array[i].head = NULL;
+    return graph;
+}
+
+void addEdge(struct Graph* graph, int src, int dest) {
+    struct Node* node = newNode(dest);
+    node->next = graph->array[src].head;
+    graph->array[src].head = node;
+ 
+}
+
+void printSCC(struct Graph* graph);
+void fillOrder(struct Graph* graph, int vertex, int visited[], struct Node** stack, int* stackIndex);
+void DFS(struct Graph* graph, int vertex, int visited[]);
+struct Graph* getTranspose(struct Graph* graph);
+
+int main() {
+    int vertices, edges;
+
+    printf("Enter the number of vertices: ");
+    scanf("%d", &vertices);
+    struct Graph* graph = createGraph(vertices);
+
+    printf("Enter the number of edges: ");
+    scanf("%d", &edges);
+    for (int i = 0; i < edges; i++) {
+        int start, end;
+        printf("Enter edge %d (start end): ", i + 1);
+        scanf("%d %d", &start, &end);
+        addEdge(graph, start, end);
+    }
+
+    printf("Strongly Connected Components:\n");
+    printSCC(graph);
+
+    for (int i = 0; i < vertices; ++i) {
+        struct Node* current = graph->array[i].head;
+        while (current) {
+            struct Node* temp = current;
+            current = current->next;
+            free(temp);
+        }
+    }
+
+    free(graph->array);
+    free(graph);
+
+    return 0;
+}
+
+void printSCC(struct Graph* graph) {
+    int vertices = graph->vertices;
+    int* visited = (int*)malloc(vertices * sizeof(int));
+    for (int i = 0; i < vertices; i++)
+        visited[i] = 0;
+
+    struct Node** stack = (struct Node**)malloc(vertices * sizeof(struct Node*));
+    int stackIndex = 0;
+
+    for (int i = 0; i < vertices; i++)
+        if (!visited[i])
+            fillOrder(graph, i, visited, stack, &stackIndex);
+
+    struct Graph* transpose = getTranspose(graph);
+
+    for (int i = 0; i < vertices; i++)
+        visited[i] = 0;
+
+    while (stackIndex > 0) {
+        int v = stack[--stackIndex]->vertex;
+        if (!visited[v]) {
+            DFS(transpose, v, visited);
+            printf("\n");
+        }
+    }
+
+    for (int i = 0; i < vertices; ++i) {
+        struct Node* current = transpose->array[i].head;
+        while (current) {
+            struct Node* temp = current;
+            current = current->next;
+            free(temp);
+        }
+    }
+
+    free(visited);
+    free(stack);
+    free(transpose->array);
+    free(transpose);
+}
+
+void fillOrder(struct Graph* graph, int vertex, int visited[], struct Node** stack, int* stackIndex) {
+    visited[vertex] = 1;
+    struct Node* current = graph->array[vertex].head;
+
+    while (current) {
+        if (!visited[current->vertex])
+            fillOrder(graph, current->vertex, visited, stack, stackIndex);
+ 
+ 
+        current = current->next;
+    }
+
+    stack[(*stackIndex)++] = newNode(vertex);
+}
+void DFS(struct Graph* graph, int vertex, int visited[]) {
+    visited[vertex] = 1;
+    printf("%d ", vertex);
+
+    struct Node* current = graph->array[vertex].head;
+
+    while (current) {
+        if (!visited[current->vertex])
+            DFS(graph, current->vertex, visited);
+        current = current->next;
+    }
+}
+
+struct Graph* getTranspose(struct Graph* graph) {
+    int vertices = graph->vertices;
+    struct Graph* transpose = createGraph(vertices);
+
+    for (int i = 0; i < vertices; i++) {
+        struct Node* current = graph->array[i].head;
+        while (current) {
+            addEdge(transpose, current->vertex, i);
+            current = current->next;
+        }
+    }
+
+    return transpose;
+}

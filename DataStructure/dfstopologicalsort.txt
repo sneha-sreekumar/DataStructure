@@ -1,0 +1,99 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct Node {
+    int vertex;
+    struct Node* next;
+};
+
+struct Graph {
+    int numVertices;
+    struct Node** adjList;
+};
+
+struct Node* createNode(int v) {
+    struct Node* newNode = (struct Node*)malloc(sizeof(struct Node));
+    newNode->vertex = v;
+    newNode->next = NULL;
+    return newNode;
+}
+
+struct Graph* createGraph(int vertices) {
+    struct Graph* graph = (struct Graph*)malloc(sizeof(struct Graph));
+    graph->numVertices = vertices;
+
+    graph->adjList = (struct Node*)malloc(vertices * sizeof(struct Node));
+    for (int i = 0; i < vertices; ++i) {
+        graph->adjList[i] = NULL;
+    }
+    return graph;
+}
+
+void addEdge(struct Graph* graph, int src, int dest) {
+    struct Node* newNode = createNode(dest);
+    newNode->next = graph->adjList[src];
+    graph->adjList[src] = newNode;
+}
+void DFS(struct Graph* graph, int v, int* visited, struct Node** stack) {
+    visited[v] = 1;
+
+    struct Node* adjNode = graph->adjList[v];
+    while (adjNode != NULL) {
+        int connectedVertex = adjNode->vertex;
+        if (!visited[connectedVertex]) {
+            DFS(graph, connectedVertex, visited, stack);
+        }
+        adjNode = adjNode->next;
+    }
+
+    struct Node* currentNode = createNode(v);
+    currentNode->next = *stack;
+    *stack = currentNode;
+}
+
+void topologicalSort(struct Graph* graph) {
+    int numVertices = graph->numVertices;
+    int visited[numVertices];
+    struct Node* stack[numVertices];
+    for (int i = 0; i < numVertices; ++i) {
+        visited[i] = 0;
+        stack[i] = createNode(i);
+    }
+
+    for (int i = 0; i < numVertices; ++i) {
+        if (!visited[i]) {
+            DFS(graph, i, visited, stack);
+        }
+    }
+
+    printf("Topological Order: ");
+    struct Node* temp = *stack;
+    while (temp != NULL) {
+        printf("%d ", temp->vertex);
+        temp = temp->next;
+    }
+    printf("\n");
+}
+
+int main() {
+    int numVertices, numEdges;
+    printf("Enter the number of vertices: ");
+    scanf("%d", &numVertices);
+    printf("Enter the number of edges: ");
+    scanf("%d", &numEdges);
+
+    struct Graph* graph = createGraph(numVertices);
+ 
+
+    printf("Enter edge information (start vertex, end vertex):\n");
+    for (int i = 0; i < numEdges; ++i) {
+        int start, end;
+        scanf("%d %d", &start, &end);
+        addEdge(graph, start, end);
+    }
+
+    topologicalSort(graph);
+
+    return 0;
+}
+
